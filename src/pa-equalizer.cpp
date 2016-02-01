@@ -4,50 +4,58 @@
 
 using namespace Gio;
 
+void
+print_type (GVariant* arg)
+{
+  std::cout << g_variant_get_type_string (arg) << std::endl;
+}
+
 PAEqualizer::PAEqualizer ()
 {
-  init();
+  GVariant* c_socket;
+
+  init ();
 
   auto lookup_conn = DBus::Connection::get_sync (DBus::BUS_TYPE_SESSION);
-  auto lookup_proxy = DBus::Proxy::create_sync (
-    lookup_conn,
-    "org.PulseAudio1",
-    "/org/pulseaudio/server_lookup1",
-    "org.freedesktop.DBus.Properties"
-  );
-  if (!lookup_proxy)
-  {
-    std::cerr << "Failed to create a proxy to the session bus." << std::endl;
-    return;
-  }
-  std::cout << "Created a proxy to the session bus." << std::endl;
-
   auto lookup_params = Glib::VariantContainerBase::create_tuple (
-    { Glib::Variant<Glib::ustring>::create ("org.PulseAudio.ServerLookup1"),
-      Glib::Variant<Glib::ustring>::create ("Address") }
+    { var_ustring::create ("org.PulseAudio.ServerLookup1"),
+      var_ustring::create ("Address") }
   );
-  const auto lookup_result = lookup_proxy->call_sync (
-    "Get", lookup_params
+  auto lookup_result = lookup_conn->call_sync (
+    "/org/pulseaudio/server_lookup1",
+    "org.freedesktop.DBus.Properties",
+    "Get",
+    lookup_params,
+    "org.PulseAudio1"
   );
 
-  Glib::Variant<std::vector<Glib::ustring>> sockets;
-  lookup_result.get_child (sockets);
-  for (auto str : sockets.get ())
+  g_variant_get_child (lookup_result.gobj (), 0, "v", &c_socket);
+  auto str = Glib::Variant<Glib::ustring> (c_socket).get ();
+
+  if (str.size () > 0)
   {
     std::cout << str << std::endl;
-    this->conn = DBus::Connection::create_for_address_sync (str, DBus::CONNECTION_FLAGS_AUTHENTICATION_CLIENT);
+    DBus::Connection::create_for_address (
+      str,
+      sigc::mem_fun (*this, &PAEqualizer::on_pulseaudio_dbus),
+      DBus::CONNECTION_FLAGS_AUTHENTICATION_CLIENT
+    );
   }
+}
 
-  if (!this->conn)
-  {
-    std::cerr << "Failed to connect to the pulse bus." << std::endl;
-    return;
-  }
-  std::cout << "Connected to the pulse bus." << std::endl;
+PAEqualizer::~PAEqualizer ()
+{
+  if (this->conn && !this-conn->is_closed ())
+    this->conn->close ();
+}
 
+void
+PAEqualizer::on_pulseaudio_dbus (Glib::RefPtr<Gio::AsyncResult>& result)
+{
+  this->conn = DBus::Connection::create_finish (result);
   auto parameters = Glib::VariantContainerBase::create_tuple (
-    { Glib::Variant<Glib::ustring>::create ("org.PulseAudio.Ext.Equalizing1.Manager"),
-      Glib::Variant<Glib::ustring>::create ("EqualizedSinks") }
+    { var_ustring::create ("org.PulseAudio.Ext.Equalizing1.Manager"),
+      var_ustring::create ("EqualizedSinks") }
   );
   auto sinks_result = this->conn->call_sync (
     "/org/pulseaudio/equalizing1",
@@ -58,37 +66,16 @@ PAEqualizer::PAEqualizer ()
   );
 
   GVariant* c_sinks;
+  Glib::VariantBase cxx_sinks;
+
+  // Containing tuple -> out: '(v)'
+  std::cout << g_variant_get_type_string (sinks_result.gobj ()) << std::endl;
+
+  // Glib get_child () -> out: 'ao'
   g_variant_get_child (sinks_result.gobj (), 0, "v", &c_sinks);
-  Glib::Variant<std::vector<Glib::ustring>> sinks (c_sinks);
-  for (auto sink : sinks.get ())
-  {
-    std::cout << sink << std::endl;
-  }
-}
- 
-PAEqualizer::~PAEqualizer ()
-{
-  
-}
+  std::cout << g_variant_get_type_string (c_sinks) << std::endl;
 
-/*
-  DBus::Proxy::create (
-    this->conn, NULL,
-    "/org/pulseaudio/core1",
-    "org.freedesktop.DBus.Properties",
-    sigc::mem_fun (*this, &PAEqualizer::on_pulse_proxy)
-  );
+  // Glibmm get_child () -> out: 'v'
+  cxx_sinks = sinks_result.get_child ();
+  std::cout << g_variant_get_type_string (cxx_sinks.gobj ()) << std::endl;
 }
-
-void
-PAEqualizer::on_pulse_proxy (Glib::RefPtr<Gio::AsyncResult>& result)
-{
-  this->proxy = DBus::Proxy::create_finish (result);
-  if (!this->proxy)
-  {
-    std::cerr << "Failed to create a proxy to the pulse bus." << std::endl;
-    return;
-  }
-  std::cout << "Connected to the pulse bus." << std::endl;
-}
-*/
