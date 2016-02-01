@@ -7,8 +7,8 @@ MainWindow::MainWindow()
 {
   this->equalizer = std::unique_ptr<PAEqualizer> (new PAEqualizer ());
 
-  this->set_border_width(10);
-  this->set_default_size(400, 200);
+  this->set_border_width (10);
+  this->set_default_size (400, 200);
 
   auto *hbox = Gtk::manage (new Gtk::Box ());
   hbox->set_spacing (20);

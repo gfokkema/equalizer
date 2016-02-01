@@ -3,7 +3,8 @@
 
 #include <gtkmm-3.0/gtkmm.h>
 
-class ChannelSlider : public Gtk::Scale {
+class ChannelSlider : public Gtk::Scale
+{
 public:
   ChannelSlider();
   virtual ~ChannelSlider();

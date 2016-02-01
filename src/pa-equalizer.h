@@ -12,7 +12,8 @@ class PAEqualizer
 public:
   PAEqualizer ();
   virtual ~PAEqualizer ();
-  void on_proxy (Glib::RefPtr<Gio::AsyncResult>& result);
+  void on_session_proxy (Glib::RefPtr<Gio::AsyncResult>& result);
+  void on_pulse_proxy (Glib::RefPtr<Gio::AsyncResult>& result);
 private:
   Glib::RefPtr<Gio::DBus::Connection> conn;
   Glib::RefPtr<Gio::DBus::Proxy> proxy;
