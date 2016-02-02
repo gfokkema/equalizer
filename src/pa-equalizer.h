@@ -8,14 +8,18 @@
 #include <vector>
 #include "pa-channel.h"
 
+typedef Glib::Variant<Glib::Variant<std::vector<Glib::ustring>>> var_var_vec_ustring;
+typedef Glib::Variant<Glib::Variant<Glib::ustring>> var_var_ustring;
 typedef Glib::Variant<Glib::ustring> var_ustring;
-typedef Glib::Variant<std::vector<Glib::ustring>> var_vector_ustring;
+typedef Glib::Variant<std::vector<Glib::ustring>> var_vec_ustring;
 
 class PAEqualizer
 {
 public:
   PAEqualizer ();
   virtual ~PAEqualizer ();
+
+  void print_sinks ();
 private:
   Glib::RefPtr<Gio::DBus::Connection> conn;
   Glib::RefPtr<Gio::DBus::Proxy> proxy;

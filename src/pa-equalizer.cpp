@@ -3,16 +3,27 @@
 #include <iostream>
 
 using namespace Gio;
+using namespace Glib;
 
-Glib::RefPtr<DBus::Connection>
+void print_type (GVariantType* arg)
+{
+  std::cout << g_variant_type_dup_string (arg) << std::endl;
+}
+
+void
+print_type (GVariant* arg)
+{
+  std::cout << g_variant_get_type_string (arg) << std::endl;
+}
+
+RefPtr<DBus::Connection>
 connect ()
 {
   GDBusConnection* c_conn = nullptr;
-  GVariant* c_socket = nullptr;
   GError* c_error = nullptr;
 
   auto lookup_conn = DBus::Connection::get_sync (DBus::BUS_TYPE_SESSION);
-  auto lookup_params = Glib::VariantContainerBase::create_tuple (
+  auto lookup_params = VariantContainerBase::create_tuple (
     { var_ustring::create ("org.PulseAudio.ServerLookup1"),
       var_ustring::create ("Address") }
   );
@@ -23,9 +34,9 @@ connect ()
     lookup_params,
     "org.PulseAudio1"                  // Bus name
   );
-
-  g_variant_get_child (lookup_result.gobj (), 0, "v", &c_socket);
-  auto socket = Glib::Variant<Glib::ustring> (c_socket).get ();
+  auto socket = VariantBase::cast_dynamic<var_var_ustring> (
+    lookup_result.get_child ()
+  ).get ().get ();
 
   if (socket.size () > 0)
   {
@@ -42,14 +53,7 @@ connect ()
   if (c_error) throw PAException (c_error->message);
   if (!c_conn) throw PAException ("Failed connecting to pulseaudio socket.");
 
-  return Glib::wrap (c_conn);
-}
-
-
-void
-print_type (GVariant* arg)
-{
-  std::cout << g_variant_get_type_string (arg) << std::endl;
+  return wrap (c_conn);
 }
 
 PAEqualizer::PAEqualizer ()
@@ -57,7 +61,7 @@ PAEqualizer::PAEqualizer ()
   GDBusProxy* c_proxy = nullptr;
   GError* c_error = nullptr;
 
-  init ();
+  Gio::init ();
 
   this->conn = connect ();
 
@@ -75,11 +79,26 @@ PAEqualizer::PAEqualizer ()
   if (c_error) throw PAException (c_error->message);
   if (!c_proxy) throw PAException ("Failed to create a proxy for pulseaudio.");
 
-  this->proxy = Glib::wrap (c_proxy);
+  this->proxy = wrap (c_proxy);
 }
 
 PAEqualizer::~PAEqualizer ()
 {
   if (this->conn && !this-conn->is_closed ())
     this->conn->close ();
+}
+
+void
+PAEqualizer::print_sinks ()
+{
+  auto params = VariantContainerBase::create_tuple (
+    { var_ustring::create ("org.PulseAudio.Ext.Equalizing1.Manager"),
+      var_ustring::create ("EqualizedSinks") }
+  );
+  auto result = this->proxy->call_sync ("Get", params);
+  auto sinks = VariantBase::cast_dynamic<var_var_vec_ustring> (
+    result.get_child ()
+  ).get ().get ();
+
+  std::cout << sinks.front () << std::endl;
 }

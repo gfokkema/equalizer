@@ -6,6 +6,7 @@
 MainWindow::MainWindow()
 {
   this->equalizer = std::unique_ptr<PAEqualizer> (new PAEqualizer ());
+  this->equalizer->print_sinks ();
 
   this->set_border_width (10);
   this->set_default_size (400, 200);
