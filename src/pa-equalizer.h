@@ -3,6 +3,7 @@
 
 #include <giomm.h>
 #include <glibmm.h>
+#include <iostream>
 #include <memory>
 #include <vector>
 #include "pa-channel.h"
@@ -15,11 +16,20 @@ class PAEqualizer
 public:
   PAEqualizer ();
   virtual ~PAEqualizer ();
-  void on_pulseaudio_dbus (Glib::RefPtr<Gio::AsyncResult>& result);
 private:
   Glib::RefPtr<Gio::DBus::Connection> conn;
   Glib::RefPtr<Gio::DBus::Proxy> proxy;
   std::vector<PAChannel> channels;
+};
+
+class PAProxy : public Gio::DBus::Proxy
+{
+  void on_signal (const Glib::ustring& sender_name,
+                  const Glib::ustring& signal_name,
+                  const Glib::VariantContainerBase& parameters)
+  {
+    std::cout << signal_name << std::endl;
+  };
 };
 
 class PAException : public std::exception
@@ -37,4 +47,5 @@ public:
 private:
   std::string m_error;
 };
+
 #endif /* PA_EQUALIZER_H_ */
