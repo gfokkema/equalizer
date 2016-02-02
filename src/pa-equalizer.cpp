@@ -16,6 +16,12 @@ print_type (GVariant* arg)
   std::cout << g_variant_get_type_string (arg) << std::endl;
 }
 
+/**
+ * Connect to the PulseAudio bus.
+ *
+ * First connects to the session bus to look up the socket path.
+ * Then connects and returns an open DBus connection to PulseAudio.
+ */
 RefPtr<DBus::Connection>
 connect ()
 {
@@ -24,12 +30,12 @@ connect ()
 
   auto lookup_conn = DBus::Connection::get_sync (DBus::BUS_TYPE_SESSION);
   auto lookup_params = VariantContainerBase::create_tuple (
-    { var_ustring::create ("org.PulseAudio.ServerLookup1"),
+    { var_ustring::create (DBUS_LOOKUP_IFACE),
       var_ustring::create ("Address") }
   );
   auto lookup_result = lookup_conn->call_sync (
-    "/org/pulseaudio/server_lookup1",  // Object path
-    "org.freedesktop.DBus.Properties", // Interface name
+    DBUS_LOOKUP_OBJPATH,               // Object path
+    DBUS_PROPERTIES_IFACE,             // Interface name
     "Get",                             // Method name
     lookup_params,
     "org.PulseAudio1"                  // Bus name
@@ -56,6 +62,11 @@ connect ()
   return wrap (c_conn);
 }
 
+/**
+ * Create a new PAEqualizer instance.
+ *
+ * Initializes a connection and a proxy to DBUS_EQUALIZER_OBJPATH.
+ */
 PAEqualizer::PAEqualizer ()
 {
   GDBusProxy* c_proxy = nullptr;
@@ -70,8 +81,8 @@ PAEqualizer::PAEqualizer ()
     G_DBUS_PROXY_FLAGS_NONE,            // Proxy flags
     NULL,                               // GDBusInterfaceInfo
     NULL,                               // Bus name
-    "/org/pulseaudio/equalizing1",      // Object path
-    "org.freedesktop.DBus.Properties",  // Interface name
+    DBUS_EQUALIZER_OBJPATH,             // Object path
+    DBUS_PROPERTIES_IFACE,              // Interface name
     NULL,                               // GCancellable
     &c_error
   );
@@ -88,11 +99,14 @@ PAEqualizer::~PAEqualizer ()
     this->conn->close ();
 }
 
-void
-PAEqualizer::print_sinks ()
+/**
+ * Return a list of equalized sinks.
+ */
+std::vector<ustring>
+PAEqualizer::get_sinks ()
 {
   auto params = VariantContainerBase::create_tuple (
-    { var_ustring::create ("org.PulseAudio.Ext.Equalizing1.Manager"),
+    { var_ustring::create (DBUS_MANAGER_IFACE),
       var_ustring::create ("EqualizedSinks") }
   );
   auto result = this->proxy->call_sync ("Get", params);
@@ -100,5 +114,44 @@ PAEqualizer::print_sinks ()
     result.get_child ()
   ).get ().get ();
 
-  std::cout << sinks.front () << std::endl;
+  return sinks;
+}
+
+/**
+ * Connect to the specified sink.
+ */
+void
+PAEqualizer::connect_to_sink (ustring sink)
+{
+  GDBusProxy* c_proxy = nullptr;
+  GDBusProxy* c_props_proxy = nullptr;
+  GError* c_error = nullptr;
+
+  c_proxy = g_dbus_proxy_new_sync (
+    this->conn->gobj (),                // DBus connection
+    G_DBUS_PROXY_FLAGS_NONE,            // Proxy flags
+    NULL,                               // GDBusInterfaceInfo
+    NULL,                               // Bus name
+    sink.c_str (),                      // Object path
+    DBUS_EQUALIZER_IFACE,               // Interface name
+    NULL,                               // GCancellable
+    &c_error
+  );
+
+  if (c_error) throw PAException (c_error->message);
+  if (!c_proxy) throw PAException ("Failed to create a proxy for pulseaudio.");
+
+  c_props_proxy = g_dbus_proxy_new_sync (
+    this->conn->gobj (),                // DBus connection
+    G_DBUS_PROXY_FLAGS_NONE,            // Proxy flags
+    NULL,                               // GDBusInterfaceInfo
+    NULL,                               // Bus name
+    sink.c_str (),                      // Object path
+    DBUS_PROPERTIES_IFACE,              // Interface name
+    NULL,                               // GCancellable
+    &c_error
+  );
+
+  if (c_error) throw PAException (c_error->message);
+  if (!c_props_proxy) throw PAException ("Failed to create a proxy for pulseaudio.");
 }

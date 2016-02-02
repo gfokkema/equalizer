@@ -3,10 +3,17 @@
 
 #include <giomm.h>
 #include <glibmm.h>
-#include <iostream>
 #include <memory>
 #include <vector>
 #include "pa-channel.h"
+
+#define DBUS_EQUALIZER_IFACE "org.PulseAudio.Ext.Equalizing1.Equalizer"
+#define DBUS_LOOKUP_IFACE "org.PulseAudio.ServerLookup1"
+#define DBUS_MANAGER_IFACE "org.PulseAudio.Ext.Equalizing1.Manager"
+#define DBUS_PROPERTIES_IFACE "org.freedesktop.DBus.Properties"
+
+#define DBUS_EQUALIZER_OBJPATH "/org/pulseaudio/equalizing1"
+#define DBUS_LOOKUP_OBJPATH "/org/pulseaudio/server_lookup1"
 
 typedef Glib::Variant<Glib::Variant<std::vector<Glib::ustring>>> var_var_vec_ustring;
 typedef Glib::Variant<Glib::Variant<Glib::ustring>> var_var_ustring;
@@ -19,21 +26,13 @@ public:
   PAEqualizer ();
   virtual ~PAEqualizer ();
 
-  void print_sinks ();
+  void                       connect_to_sink (Glib::ustring);
+  std::vector<Glib::ustring> get_sinks ();
+  void                       print_sinks ();
 private:
   Glib::RefPtr<Gio::DBus::Connection> conn;
-  Glib::RefPtr<Gio::DBus::Proxy> proxy;
-  std::vector<PAChannel> channels;
-};
-
-class PAProxy : public Gio::DBus::Proxy
-{
-  void on_signal (const Glib::ustring& sender_name,
-                  const Glib::ustring& signal_name,
-                  const Glib::VariantContainerBase& parameters)
-  {
-    std::cout << signal_name << std::endl;
-  };
+  Glib::RefPtr<Gio::DBus::Proxy>      proxy;
+  std::vector<PAChannel>              channels;
 };
 
 class PAException : public std::exception
