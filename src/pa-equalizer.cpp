@@ -1,9 +1,20 @@
 #include "pa-equalizer.h"
 
 #include <iostream>
+#include "pa-exception.h"
 
 using namespace Gio;
 using namespace Glib;
+
+//class PAProxy : public Gio::DBus::Proxy
+//{
+//  virtual void on_signal (const Glib::ustring& sender_name,
+//                          const Glib::ustring& signal_name,
+//                          const Glib::VariantContainerBase& parameters)
+//  {
+//    std::cout << signal_name << std::endl;
+//  };
+//};
 
 void print_type (GVariantType* arg)
 {

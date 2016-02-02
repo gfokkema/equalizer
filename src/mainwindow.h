@@ -8,10 +8,10 @@ class PAEqualizer;
 class MainWindow : public Gtk::Window
 {
 public:
-  MainWindow ();
+  MainWindow (std::shared_ptr<PAEqualizer>);
   virtual ~MainWindow ();
 private:
-  std::unique_ptr<PAEqualizer> equalizer;
+  std::shared_ptr<PAEqualizer> m_equalizer;
 };
 
 #endif /* MAINWINDOW_H_ */

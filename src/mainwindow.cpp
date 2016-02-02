@@ -3,13 +3,9 @@
 #include "channelslider.h"
 #include "pa-equalizer.h"
 
-MainWindow::MainWindow()
+MainWindow::MainWindow (std::shared_ptr<PAEqualizer> equalizer)
+: m_equalizer (equalizer)
 {
-  this->equalizer = std::unique_ptr<PAEqualizer> (new PAEqualizer ());
-
-  auto sink = this->equalizer->get_sinks ().front ();
-  this->equalizer->connect_to_sink (sink);
-
   this->set_border_width (10);
   this->set_default_size (400, 200);
 

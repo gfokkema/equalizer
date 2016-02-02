@@ -1,11 +1,13 @@
-#include <gtkmm-3.0/gtkmm.h>
-
 #include "mainwindow.h"
+#include "pa-equalizer.h"
 
 int main(int argc, char* argv[])
 {
-  auto app = Gtk::Application::create(argc, argv, "org.gtkmm.example");
+  auto equalizer = std::shared_ptr<PAEqualizer> (new PAEqualizer ());
+  auto sink = equalizer->get_sinks ().front ();
+  equalizer->connect_to_sink (sink);
 
-  MainWindow window;
+  auto app = Gtk::Application::create(argc, argv, "org.equalizer");
+  MainWindow window (equalizer);
   return app->run(window);
 }

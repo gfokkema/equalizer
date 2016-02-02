@@ -3,8 +3,8 @@
 
 #include <giomm.h>
 #include <glibmm.h>
-#include <memory>
 #include <vector>
+
 #include "pa-channel.h"
 
 #define DBUS_EQUALIZER_IFACE "org.PulseAudio.Ext.Equalizing1.Equalizer"
@@ -33,22 +33,6 @@ private:
   Glib::RefPtr<Gio::DBus::Connection> conn;
   Glib::RefPtr<Gio::DBus::Proxy>      proxy;
   std::vector<PAChannel>              channels;
-};
-
-class PAException : public std::exception
-{
-public:
-  PAException (std::string error)
-  : m_error (error) {};
-
-  ~PAException () throw () {};
-
-  const char* what () const throw ()
-  {
-    return this->m_error.c_str();
-  };
-private:
-  std::string m_error;
 };
 
 #endif /* PA_EQUALIZER_H_ */
